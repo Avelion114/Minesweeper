@@ -1,5 +1,5 @@
 #include <iostream>
-#include <SDL3/SDL.h>
+#include <SDL2/SDL.h>
 
 
 int main(int argc, char* argv[])
@@ -8,11 +8,11 @@ int main(int argc, char* argv[])
     SDL_Window* Window = nullptr;
 
     //Try init video, if unsucessful print error message
-    if(SDL_Init(SDL_INIT_VIDEO))
+    if(SDL_Init(SDL_INIT_VIDEO) >= 0)
     {
         
         //Create window
-        Window = SDL_CreateWindow("Minesweeper", 640, 480, SDL_WINDOW_RESIZABLE);
+        Window = SDL_CreateWindow("Minesweeper", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480,  SDL_WINDOW_SHOWN);
         //Ensure window was created
         if(Window)
         {
