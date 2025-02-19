@@ -157,6 +157,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\Minesweeper.cpp" />
+    <ClCompile Include="Source\Private\Tile.cpp" />
     <ClCompile Include="Source\Private\TileMap.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -237,6 +238,7 @@
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Public\Tile.h" />
     <ClInclude Include="Source\Public\TileMap.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,5 +1,13 @@
 #pragma once
 #include <cstdint>
+#include <vector>
+#include <map>
+
+#include "Tile.h"
+
+
+enum class ETileType;
+class Tile;
 
 struct Vector2
 {
@@ -11,16 +19,41 @@ struct Vector2
 class TileMap
 {
 public:
+
+	static std::map<int, const char*> TileResources;
 	
 	TileMap(Vector2 Dim);
 	~TileMap();
 
-	bool GetTileState(Vector2 Tile);
-	void SetTileState(Vector2 Tile, bool Value);
+	bool GetTileVisibility(Vector2 Tile);
+	void ShowTile(Vector2 Tile, bool SkipCheck = false);
+	void MarkTile(Vector2 Tile);
+
+	Tile& GetTile(Vector2 Tile)
+	{
+		return Tiles[Tile.Height][Tile.Width];
+	}
+
+	void GenerateTiles();
+	void TryIncrementMines(Vector2 Tile);
+	bool IsValidTile(Vector2 Tile) const
+	{
+		if(Tile.Height >= 0 && Tile.Width >= 0)
+		{
+			if(Tile.Height < Dimensions.Height && Tile.Width < Dimensions.Width)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	int GetTouchingMines(Vector2 Tile)
+	{
+		return Tiles[Tile.Height][Tile.Width].MinesInProximity;
+	}
 
 private:
-	bool** Tiles = nullptr;
-
-	Vector2 Dimensions;
 	
+	std::vector<std::vector<Tile>> Tiles;
+	Vector2 Dimensions;
 };
