@@ -7,6 +7,8 @@
 #include <map>
 #include <ostream>
 
+#include <bitset>
+
 std::map<int, const char*> TileMap::TileResources =
 {
 	{0, nullptr},
@@ -38,35 +40,34 @@ TileMap::~TileMap()
 	Tiles.clear();
 }
 
-void TileMap::ShowTile(Vector2 Tile, bool SkipCheck)
+void TileMap::ShowTile(Vector2 Tile)
 {
 	auto T = &Tiles[Tile.Height][Tile.Width];
-	if(!SkipCheck) //Special case where we need to check even the visible tiles of an area we just cleared
+	if(T->HasFlag(Flags::VISIBLE) || T->HasFlag(Flags::FLAG))
 	{
-		if(T->HasFlag(Flags::VISIBLE) || T->HasFlag(Flags::FLAG))
-		{
-			return;
-		}
+		return;
 	}
+	
 
 	T->SetFlag(Flags::VISIBLE);
 	if(T->MinesInProximity == 0)
 	{
-
-		int h = Tile.Height - 1;
-		int w = Tile.Width - 1;
-		for(h; h < Tile.Height + 2; h++)
+		
+		for(int h = Tile.Height - 1; h < Tile.Height + 2; h++)
 		{
-			for(w; w < Tile.Width + 2; w++)
+			for(int w = Tile.Width - 1; w < Tile.Width + 2; w++)
 			{
 				Vector2 NextTile(w,h);
+				if(NextTile == Tile){continue;}
 				//consider adding an array to track already checked tiles so we don't double count
 				printf("Next Tile %i, %i\n", w, h);
 				if(IsValidTile(NextTile))
 				{
-					ShowTile(NextTile, true);
+					//Tiles[NextTile.Height][NextTile.Width].SetFlag(Flags::VISIBLE);
+					ShowTile(NextTile);
 				}
 			}
+			std::cout << "H Value" << h << std::endl;
 		}
 	}
 }
@@ -76,14 +77,21 @@ void TileMap::MarkTile(Vector2 Tile)
 	auto T = &Tiles[Tile.Height][Tile.Width];
 	if(T->HasFlag(Flags::VISIBLE)) return;
 	
-	if(T->HasFlag(Flags::FLAG)) T->ClearFlag(Flags::FLAG);
-	else T->SetFlag(Flags::FLAG);
-	
+	if(T->HasFlag(Flags::FLAG))
+	{
+		T->ClearFlag(Flags::FLAG);
+	}
+	else
+	{
+		T->SetFlag(Flags::FLAG);
+	}
+	std::bitset<8> B(T->TileFlags);
+	std::cout << B << std::endl;
 }
 
 void TileMap::GenerateTiles()
 {
-	int NumMines = 5; //Will be set with difficulty
+	int NumMines = 20; //Will be set with difficulty
 	srand(time(NULL));
 	//Generate random mines
 	for(int i = 0; i < NumMines; i++)

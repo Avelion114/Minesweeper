@@ -6,9 +6,9 @@
 
 enum class Flags
 {
-	VISIBLE = 0x01,
-	MINE = 0x02,
-	FLAG = 0x04
+	VISIBLE = 1 << 1,
+	MINE = 1 << 2,
+	FLAG = 1 << 3
 };
 
 
@@ -30,12 +30,12 @@ public:
 	}
 	void ClearFlag(Flags Flag)
 	{
-		TileFlags = TileFlags & !static_cast<uint8_t>(Flag);
+		TileFlags = TileFlags & ~static_cast<uint8_t>(Flag);
 	}
 
 private:
 	int MinesInProximity = 0;
 
-	uint8_t TileFlags = 0x00;
+	uint8_t TileFlags = 0;
 	
 };

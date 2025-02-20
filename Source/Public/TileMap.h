@@ -14,6 +14,11 @@ struct Vector2
 	Vector2(uint32_t x = 0, uint32_t y = 0) : Width(x), Height(y) {}
 	uint32_t Width;
 	uint32_t Height;
+
+	bool operator==(const Vector2& other) const
+	{
+		return (Width == other.Width) && (Height == other.Height);
+	}
 };
 
 class TileMap
@@ -26,7 +31,7 @@ public:
 	~TileMap();
 
 	bool GetTileVisibility(Vector2 Tile);
-	void ShowTile(Vector2 Tile, bool SkipCheck = false);
+	void ShowTile(Vector2 Tile);
 	void MarkTile(Vector2 Tile);
 
 	Tile& GetTile(Vector2 Tile)
