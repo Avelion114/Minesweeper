@@ -27,18 +27,26 @@ public:
 
 	static std::map<int, const char*> TileResources;
 	
-	TileMap(Vector2 Dim);
+	TileMap(Vector2 Dim, int MinesToSpawn);
 	~TileMap();
 
 	bool GetTileVisibility(Vector2 Tile);
 	void ShowTile(Vector2 Tile);
-	void MarkTile(Vector2 Tile);
+	void MarkTile(Vector2 Tile, int& Flags, int& RMines);
+	void RevealMines();
 
 	Tile& GetTile(Vector2 Tile)
 	{
 		return Tiles[Tile.Height][Tile.Width];
 	}
 
+	int GetTouchingMines(Vector2 Tile) const
+	{
+		return Tiles[Tile.Height][Tile.Width].MinesInProximity;
+	}
+
+protected:
+	
 	void GenerateTiles();
 	void TryIncrementMines(Vector2 Tile);
 	bool IsValidTile(Vector2 Tile) const
@@ -52,13 +60,12 @@ public:
 		}
 		return false;
 	}
-	int GetTouchingMines(Vector2 Tile)
-	{
-		return Tiles[Tile.Height][Tile.Width].MinesInProximity;
-	}
+
 
 private:
 	
 	std::vector<std::vector<Tile>> Tiles;
 	Vector2 Dimensions;
+	int NumMines = 0;
+	std::vector<Vector2> Mines;
 };

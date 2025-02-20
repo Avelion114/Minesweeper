@@ -7,7 +7,6 @@
 #include <map>
 #include <ostream>
 
-#include <bitset>
 
 std::map<int, const char*> TileMap::TileResources =
 {
@@ -24,10 +23,11 @@ std::map<int, const char*> TileMap::TileResources =
 	{10, "Resources/Flag.bmp"}
 };
 
-TileMap::TileMap(Vector2 Dim)
+TileMap::TileMap(Vector2 Dim, int MinesToSpawn)
 {
 	Dimensions = Dim;
 	Tiles = std::vector<std::vector<Tile>>(Dim.Height, std::vector<Tile>(Dim.Width));
+	NumMines = MinesToSpawn;
 	GenerateTiles();
 }
 
@@ -72,7 +72,7 @@ void TileMap::ShowTile(Vector2 Tile)
 	}
 }
 
-void TileMap::MarkTile(Vector2 Tile)
+void TileMap::MarkTile(Vector2 Tile, int& RFlags, int& RMines)
 {
 	auto T = &Tiles[Tile.Height][Tile.Width];
 	if(T->HasFlag(Flags::VISIBLE)) return;
@@ -80,18 +80,33 @@ void TileMap::MarkTile(Vector2 Tile)
 	if(T->HasFlag(Flags::FLAG))
 	{
 		T->ClearFlag(Flags::FLAG);
+		RFlags++;
+		if(T->HasFlag(Flags::MINE))
+		{
+			RMines++;
+		}
 	}
-	else
+	else if(RFlags > 0)
 	{
 		T->SetFlag(Flags::FLAG);
+		RFlags--;
+		if(T->HasFlag(Flags::MINE))
+		{
+			RMines--;
+		}
 	}
-	std::bitset<8> B(T->TileFlags);
-	std::cout << B << std::endl;
+}
+
+void TileMap::RevealMines()
+{
+	for(auto Tile : Mines)
+	{
+		Tiles[Tile.Height][Tile.Width].SetFlag(Flags::VISIBLE);
+	}
 }
 
 void TileMap::GenerateTiles()
 {
-	int NumMines = 20; //Will be set with difficulty
 	srand(time(NULL));
 	//Generate random mines
 	for(int i = 0; i < NumMines; i++)
@@ -105,6 +120,7 @@ void TileMap::GenerateTiles()
 			continue;
 		}
 		Tiles[H][W].SetFlag(Flags::MINE);
+		Mines.emplace_back(W,H);
 
 		//Tell tiles around this mine that it is touching a mine
 		for(int h = H - 1; h < H + 2; h++)

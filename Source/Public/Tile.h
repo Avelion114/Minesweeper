@@ -8,7 +8,8 @@ enum class Flags
 {
 	VISIBLE = 1 << 1,
 	MINE = 1 << 2,
-	FLAG = 1 << 3
+	FLAG = 1 << 3,
+	DIFFUSED = 1 << 4
 };
 
 

@@ -2,24 +2,38 @@
 #include "TileMap.h"
 #include <SDL2/SDL.h>
 
-const int TILE_SIZE = 23;
-const int SCREEN_WIDTH = TILE_SIZE * 10;
-const int SCREEN_HEIGHT = TILE_SIZE * 10;
+constexpr int TILE_SIZE = 23;
+constexpr int SCREEN_WIDTH = 640;
+constexpr int SCREEN_HEIGHT = 480;
+
+constexpr int GRID_X = TILE_SIZE * 15;
+constexpr int GRID_Y = TILE_SIZE * 15;
+
+int DIFFICULTY = 20;
 
 
 SDL_Window* Window = nullptr;
 SDL_Surface* WSurface = nullptr;
-SDL_Surface* TileSurface = nullptr; //Tile image to load
+SDL_Surface* TileSurface = nullptr; //Covered tile image
+SDL_Surface* TileTypeSurface[11] = {nullptr}; //Uncovered tile images
+SDL_Surface* BorderSurface[4] = {nullptr}; //Border tiles
+TileMap* MainMap = nullptr;
 
-SDL_Surface* TileTypeSurface[11] = {nullptr};
-#define INDEX_MINE 9
-#define INDEX_FLAG 10
+
+
+enum : uint8_t
+{
+    INDEX_MINE = 9,
+    INDEX_FLAG = 10
+};
 
 
 bool Init();
 bool LoadMedia();
 bool LoadFromType(int Type);
 void Close();
+bool EndGame(bool GameWon);
+
 SDL_Rect ConstructRect(int Height, int Width, int PosX, int PosY)
 {
     SDL_Rect Rect;
@@ -38,11 +52,16 @@ int main(int argc, char* argv[])
         {
 
             bool Quit = false;
+            bool GameOver = false;
             SDL_Event E;
             
-            int Width = SCREEN_WIDTH / TILE_SIZE;
-            int Height = SCREEN_HEIGHT / TILE_SIZE;
-            TileMap MainMap(Vector2(Width, Height));
+            int Width = GRID_X / TILE_SIZE;
+            int Height = GRID_Y / TILE_SIZE;
+            int RemainingMines = DIFFICULTY, RemainingFlags = DIFFICULTY;
+            MainMap = new TileMap(Vector2(Width, Height), RemainingMines);
+            int OFFSET_X = (SCREEN_WIDTH  - GRID_X) / 2;
+            int OFFSET_Y = (SCREEN_HEIGHT - GRID_Y) / 2;
+            
             
             while(!Quit)//Main loop
             {
@@ -56,16 +75,32 @@ int main(int argc, char* argv[])
 
                         case SDL_MOUSEBUTTONDOWN:
                             {
-                                int x = E.button.x / TILE_SIZE;
-                                int y = E.button.y / TILE_SIZE;
-                                if(E.button.button == SDL_BUTTON_LEFT)
+                                if(!GameOver)//Only handle tile mouse events while game is in progress
                                 {
-                                    MainMap.ShowTile(Vector2(x,y));
+                                    int x = (E.button.x - OFFSET_X) / TILE_SIZE;
+                                    int y = (E.button.y - OFFSET_Y) / TILE_SIZE;
+                                    Vector2 Tile(x, y);
+                                    if(E.button.button == SDL_BUTTON_LEFT)
+                                    {
+                                        MainMap->ShowTile(Tile);
+                                        if(MainMap->GetTile(Tile).HasFlag(Flags::MINE))
+                                        {
+                                            GameOver = true;
+                                            MainMap->RevealMines();
+                                            EndGame(false);
+                                        }
+                                    }
+                                    else if(E.button.button == SDL_BUTTON_RIGHT)
+                                    {
+                                        MainMap->MarkTile(Tile, RemainingFlags, RemainingMines);
+                                        if(RemainingFlags == 0 && RemainingMines == 0)
+                                        {
+                                            GameOver = true;
+                                            EndGame(true);
+                                        }
+                                    }
                                 }
-                                else if(E.button.button == SDL_BUTTON_RIGHT)
-                                {
-                                    MainMap.MarkTile(Vector2(x,y));
-                                }
+                                break;
                             }
 
                     default: break;
@@ -78,11 +113,11 @@ int main(int argc, char* argv[])
                     for(int h = 0; h < Height; h++)
                     {
                         Vector2 CurrentTile(w,h);
-                        SDL_Rect Destination = ConstructRect(TILE_SIZE,TILE_SIZE,w*TILE_SIZE,h*TILE_SIZE);
+                        SDL_Rect Destination = ConstructRect(TILE_SIZE,TILE_SIZE,w*TILE_SIZE + OFFSET_X,h*TILE_SIZE + OFFSET_Y);
                         //Cover the underlying tile if it hasn't been exposed yet
-                        if(!MainMap.GetTileVisibility(CurrentTile))
+                        if(!MainMap->GetTileVisibility(CurrentTile))
                         {
-                            if(MainMap.GetTile(CurrentTile).HasFlag(Flags::FLAG))
+                            if(MainMap->GetTile(CurrentTile).HasFlag(Flags::FLAG))
                             {
                                 SDL_BlitSurface(TileTypeSurface[INDEX_FLAG], nullptr, WSurface, &Destination);
                             }
@@ -94,11 +129,11 @@ int main(int argc, char* argv[])
                         }
                         else //tile is visible. blit the correct texture based on type
                         {
-                            int I = -1;
-                            if(MainMap.GetTile(CurrentTile).HasFlag(Flags::MINE)){I = INDEX_MINE;}
+                            int I;
+                            if(MainMap->GetTile(CurrentTile).HasFlag(Flags::MINE)){I = INDEX_MINE;}
                             else
                             {
-                                I = MainMap.GetTouchingMines(CurrentTile);
+                                I = MainMap->GetTouchingMines(CurrentTile);
                             }
                             SDL_BlitSurface(TileTypeSurface[I], nullptr, WSurface, &Destination);
                         }
@@ -178,11 +213,29 @@ bool LoadFromType(int Type)
 
 void Close()
 {
+    delete(MainMap);
     SDL_DestroyWindow(Window);
     SDL_FreeSurface(TileSurface);
     for(auto Surface : TileTypeSurface)
     {
         SDL_FreeSurface(Surface);
     }
+    for(auto Surface : BorderSurface)
+    {
+        SDL_FreeSurface(Surface);
+    }
     SDL_Quit();
+}
+
+bool EndGame(bool GameWon)
+{
+    if(GameWon)
+    {
+        std::cout << "Congrats!\nYou Won!" << std::endl;
+    }
+    else
+    {
+        std::cout << "You Lose :(" << std::endl;
+    }
+    return false;
 }
