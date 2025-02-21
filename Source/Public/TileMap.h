@@ -2,38 +2,54 @@
 #include <cstdint>
 #include <vector>
 #include <map>
-
+#include "Scene.h"
 #include "Tile.h"
 
+enum : uint8_t
+{
+	INDEX_MINE = 9,
+	INDEX_FLAG = 10
+};
 
+enum : uint8_t
+{
+	BORDER_T = 1,
+	BORDER_TL,
+	BORDER_L,
+	BORDER_BL,
+	BORDER_B,
+	BORDER_BR,
+	BORDER_R,
+	BORDER_TR
+};
+
+//Forward Declarations
+struct SDL_Rect;
 enum class ETileType;
 class Tile;
 
-struct Vector2
-{
-	Vector2(uint32_t x = 0, uint32_t y = 0) : Width(x), Height(y) {}
-	uint32_t Width;
-	uint32_t Height;
-
-	bool operator==(const Vector2& other) const
-	{
-		return (Width == other.Width) && (Height == other.Height);
-	}
-};
-
-class TileMap
+//Class for drawing the main map during a game and handling gameplay
+class TileMap : public Scene
 {
 public:
 
 	static std::map<int, const char*> TileResources;
 	
-	TileMap(Vector2 Dim, int MinesToSpawn);
-	~TileMap();
+	TileMap(Vector2 Dim, int TileSize, int MinesToSpawn);
+	~TileMap() override;
+
+	virtual void Draw(SDL_Surface* DrawSurface) override;
+	virtual void ProcessInputEvents(SDL_Event& E) override;
 
 	bool GetTileVisibility(Vector2 Tile);
 	void ShowTile(Vector2 Tile);
-	void MarkTile(Vector2 Tile, int& Flags, int& RMines);
+	void MarkTile(Vector2 Tile);
 	void RevealMines();
+	void SetOnGameEnded(bool(*GameEnded)(bool))
+	{
+		OnGameEnded = GameEnded;
+	}
+	Vector2 GetDim()const {return Dimensions;}
 
 	Tile& GetTile(Vector2 Tile)
 	{
@@ -44,8 +60,15 @@ public:
 	{
 		return Tiles[Tile.Height][Tile.Width].MinesInProximity;
 	}
+	bool AllBombsDiffused()
+	{
+		return RemainingFlags == 0 && RemainingMines == 0;
+	}
 
 protected:
+
+	virtual bool LoadResources() override;
+	virtual void ClearResources() override;
 	
 	void GenerateTiles();
 	void TryIncrementMines(Vector2 Tile);
@@ -63,9 +86,22 @@ protected:
 
 
 private:
+
+	SDL_Surface* TileTypeSurface[11] = {nullptr};
+	SDL_Surface* TileSurface = nullptr;
+	SDL_Surface* BorderSurface = nullptr;
+
+	//Callback for on game win or lose
+	bool(*OnGameEnded)(bool);
 	
 	std::vector<std::vector<Tile>> Tiles;
 	Vector2 Dimensions;
+	int TILE_SIZE = 0;
 	int NumMines = 0;
 	std::vector<Vector2> Mines;
+
+	int RemainingFlags = 0;
+	int RemainingMines = 0;
+
+	void DrawBorderTiles(int w, int h, int Width, int Height, SDL_Rect Destination, SDL_Surface* Surface);
 };

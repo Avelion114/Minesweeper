@@ -1,8 +1,7 @@
 #include "../Public/TileMap.h"
-
 #include <ctime>
 #include <iostream>
-
+#include <SDL2/SDL.h>
 #include "../Public/Tile.h"
 #include <map>
 #include <ostream>
@@ -23,12 +22,15 @@ std::map<int, const char*> TileMap::TileResources =
 	{10, "Resources/Flag.bmp"}
 };
 
-TileMap::TileMap(Vector2 Dim, int MinesToSpawn)
+TileMap::TileMap(Vector2 Dim, int TileSize, int MinesToSpawn) : Dimensions(Dim), TILE_SIZE(TileSize), NumMines(MinesToSpawn)
 {
-	Dimensions = Dim;
 	Tiles = std::vector<std::vector<Tile>>(Dim.Height, std::vector<Tile>(Dim.Width));
-	NumMines = MinesToSpawn;
-	GenerateTiles();
+	RemainingFlags = MinesToSpawn;
+	RemainingMines = MinesToSpawn;
+	if(LoadResources())
+	{
+		GenerateTiles();
+	}
 }
 
 TileMap::~TileMap()
@@ -38,6 +40,142 @@ TileMap::~TileMap()
 		IT.clear();
 	}
 	Tiles.clear();
+	ClearResources();
+}
+
+void TileMap::Draw(SDL_Surface* DrawSurface)
+{
+	int Width = Dimensions.Width;
+	int Height = Dimensions.Height;
+	//Draw array of tiles
+	for(int w = 0; w < Width; w++)
+	{
+		for(int h = 0; h < Height; h++)
+		{
+			Vector2 CurrentTile(w,h);
+			SDL_Rect Destination = {w*TILE_SIZE + Position.Width,h*TILE_SIZE + Position.Height,TILE_SIZE,TILE_SIZE};
+			//Cover the underlying tile if it hasn't been exposed yet
+			if(!GetTileVisibility(CurrentTile))
+			{
+				if(GetTile(CurrentTile).HasFlag(Flags::FLAG))
+				{
+					SDL_BlitSurface(TileTypeSurface[INDEX_FLAG], nullptr, DrawSurface, &Destination);
+				}
+				else
+				{
+					SDL_BlitSurface(TileSurface, nullptr, DrawSurface, &Destination);
+				}
+                           
+			}
+			else //tile is visible. blit the correct texture based on type
+			{
+				int I;
+				if(GetTile(CurrentTile).HasFlag(Flags::MINE)){I = INDEX_MINE;}
+				else
+				{
+					I = GetTouchingMines(CurrentTile);
+				}
+				SDL_BlitSurface(TileTypeSurface[I], nullptr, DrawSurface, &Destination);
+			}
+
+			//Draw Border Tiles
+			DrawBorderTiles(w, h, Width, Height, Destination, DrawSurface);
+                       
+		}
+	}
+}
+
+void TileMap::ProcessInputEvents(SDL_Event& E)
+{
+	 switch(E.type)
+        {
+            case SDL_MOUSEBUTTONDOWN:
+                {
+                       
+                        int x = (E.button.x - Position.Width) / TILE_SIZE;
+                        int y = (E.button.y - Position.Height) / TILE_SIZE;
+                        Vector2 Tile(x, y);
+                        if(E.button.button == SDL_BUTTON_LEFT)
+                        {
+                            ShowTile(Tile);
+                            if(GetTile(Tile).HasFlag(Flags::MINE))
+                            {
+                                RevealMines();
+                            	if(OnGameEnded)
+                            	{
+                            		OnGameEnded(false);
+                            	}
+                            }
+                        }
+                        else if(E.button.button == SDL_BUTTON_RIGHT)
+                        {
+                            MarkTile(Tile);
+                            if(AllBombsDiffused())
+                            {
+                            	if(OnGameEnded)
+                            	{
+                            		OnGameEnded(true);
+                            	}
+                            }
+                        }
+                    }
+                }
+}
+
+void TileMap::DrawBorderTiles(int w, int h, int Width, int Height, SDL_Rect Destination, SDL_Surface* DrawSurface)
+{
+	if(w == 0) // Left side
+	{
+		SDL_Rect D2 = Destination;
+		D2.x -= TILE_SIZE;
+		SDL_Rect Source = {BORDER_L * TILE_SIZE, 0,TILE_SIZE, TILE_SIZE};
+		SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		if(h == 0)//Top Left corner
+		{
+			D2.y -= TILE_SIZE;
+			Source.x = BORDER_TL * TILE_SIZE;
+			SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		}
+		else if(h == Height - 1) //Bottom Left Corner
+		{
+			D2.y += TILE_SIZE;
+			Source.x = BORDER_BL * TILE_SIZE;
+			SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		}
+	}
+	else if (w == Width - 1)//Right side
+	{
+		SDL_Rect D2 = Destination;
+		D2.x += TILE_SIZE;
+		SDL_Rect Source = {BORDER_R * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
+		SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		if(h == 0)//Top Right corner
+		{
+			D2.y -= TILE_SIZE;
+			Source.x = BORDER_TR * TILE_SIZE;
+			SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		}
+		else if(h == Height - 1) //Bottom Right Corner
+		{
+			D2.y += TILE_SIZE;
+			Source.x = BORDER_BR * TILE_SIZE;
+			SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+		}
+	}
+	if(h == 0)//Top
+	{
+		SDL_Rect D2 = Destination;
+		D2.y -= TILE_SIZE;
+		SDL_Rect Source = {BORDER_T * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
+		SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+	}
+	else if(h == Height - 1)//Bottom
+	{
+		SDL_Rect D2 = Destination;
+		D2.y += TILE_SIZE;
+		SDL_Rect Source = {BORDER_B * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE};
+		SDL_BlitSurface(BorderSurface, &Source, DrawSurface, &D2);
+	}
 }
 
 void TileMap::ShowTile(Vector2 Tile)
@@ -72,7 +210,7 @@ void TileMap::ShowTile(Vector2 Tile)
 	}
 }
 
-void TileMap::MarkTile(Vector2 Tile, int& RFlags, int& RMines)
+void TileMap::MarkTile(Vector2 Tile)
 {
 	auto T = &Tiles[Tile.Height][Tile.Width];
 	if(T->HasFlag(Flags::VISIBLE)) return;
@@ -80,19 +218,19 @@ void TileMap::MarkTile(Vector2 Tile, int& RFlags, int& RMines)
 	if(T->HasFlag(Flags::FLAG))
 	{
 		T->ClearFlag(Flags::FLAG);
-		RFlags++;
+		RemainingFlags++;
 		if(T->HasFlag(Flags::MINE))
 		{
-			RMines++;
+			RemainingMines++;
 		}
 	}
-	else if(RFlags > 0)
+	else if(RemainingFlags > 0)
 	{
 		T->SetFlag(Flags::FLAG);
-		RFlags--;
+		RemainingFlags--;
 		if(T->HasFlag(Flags::MINE))
 		{
-			RMines--;
+			RemainingMines--;
 		}
 	}
 }
@@ -102,6 +240,48 @@ void TileMap::RevealMines()
 	for(auto Tile : Mines)
 	{
 		Tiles[Tile.Height][Tile.Width].SetFlag(Flags::VISIBLE);
+	}
+}
+
+bool TileMap::LoadResources()
+{
+	TileSurface = SDL_LoadBMP("Resources/Tile.bmp");
+	if(TileSurface == nullptr)
+	{
+		std::cout << "Failed to load Tile.bmp" << SDL_GetError() << "\n";
+		return false;
+	}
+	BorderSurface = SDL_LoadBMP("Resources/Border_Tileset.bmp");
+	if(BorderSurface == nullptr)
+	{
+		std::cout << "Failed to load Border_Tileset.bmp" << SDL_GetError() << "\n";
+		return false;
+	}
+	
+	for(int i = 0; i < 11; i++)
+	{
+		const char* Path = TileMap::TileResources.at(i);
+		if(Path != nullptr)
+		{
+			TileTypeSurface[i] = SDL_LoadBMP(Path);
+			if(TileTypeSurface[i] == nullptr)
+			{
+				std::cout << "Failed to load resource to TileTypeSurface:" << SDL_GetError() << "\n";
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+void TileMap::ClearResources()
+{
+	SDL_FreeSurface(TileSurface);
+	TileSurface = nullptr;
+	for(auto Surface : TileTypeSurface)
+	{
+		SDL_FreeSurface(Surface);
+		Surface = nullptr;
 	}
 }
 
