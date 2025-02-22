@@ -1,9 +1,8 @@
 #include <iostream>
-#include <stack>
-
-#include "TileMap.h"
 #include <SDL2/SDL.h>
 
+#include "Button.h"
+#include "TileMap.h"
 #include "Menu.h"
 
 constexpr int TILE_SIZE = 23;
@@ -49,7 +48,8 @@ int main(int argc, char* argv[])
             bool Quit = false;
             SDL_Event E;
 
-            SetGameState(GameState::IN_PROGRESS, Difficulty::EASY);
+            SetGameState(GameState::MAIN_MENU);
+            //SetGameState(GameState::IN_PROGRESS, Difficulty::EASY);
    
             while(!Quit)//Main loop
             {
@@ -140,6 +140,13 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
     {
     case GameState::MAIN_MENU:
         {
+            Button* NewButton = new Button();
+            NewButton->Position = Vector2(20,20);
+            NewButton->BindOnButtonPressed([]()
+                {
+                    SetGameState(GameState::IN_PROGRESS, Difficulty::EASY);                
+            });
+            sceneStack.push_back(NewButton);
             //Create menu scene
             //sceneStack.push_back(new MainMenu);
             //Push onto stack
@@ -148,6 +155,10 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
         }
     case GameState::IN_PROGRESS:
         {
+            
+            delete sceneStack.back(); //Destroy top level menu
+            sceneStack.pop_back();
+            
             int Width = 0, Height = 0, DIFFICULTY = 0;
             switch(NewDifficulty)
             {

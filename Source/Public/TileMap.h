@@ -33,8 +33,6 @@ class TileMap : public Scene
 {
 public:
 
-	static std::map<int, const char*> TileResources;
-	
 	TileMap(Vector2 Dim, int TileSize, int MinesToSpawn);
 	~TileMap() override;
 
@@ -53,12 +51,12 @@ public:
 
 	Tile& GetTile(Vector2 Tile)
 	{
-		return Tiles[Tile.Height][Tile.Width];
+		return Tiles[Tile.Height()][Tile.Width()];
 	}
 
 	int GetTouchingMines(Vector2 Tile) const
 	{
-		return Tiles[Tile.Height][Tile.Width].MinesInProximity;
+		return Tiles[Tile.Height()][Tile.Width()].MinesInProximity;
 	}
 	bool AllBombsDiffused()
 	{
@@ -74,9 +72,9 @@ protected:
 	void TryIncrementMines(Vector2 Tile);
 	bool IsValidTile(Vector2 Tile) const
 	{
-		if(Tile.Height >= 0 && Tile.Width >= 0)
+		if(Tile.Height() >= 0 && Tile.Width() >= 0)
 		{
-			if(Tile.Height < Dimensions.Height && Tile.Width < Dimensions.Width)
+			if(Tile.Height() < Dimensions.Height() && Tile.Width() < Dimensions.Width())
 			{
 				return true;
 			}

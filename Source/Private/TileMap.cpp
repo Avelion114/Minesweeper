@@ -7,24 +7,10 @@
 #include <ostream>
 
 
-std::map<int, const char*> TileMap::TileResources =
-{
-	{0, nullptr},
-	{1, "Resources/One.bmp"},
-	{2, "Resources/Two.bmp"},
-	{3, "Resources/Three.bmp"},
-	{4, "Resources/Four.bmp"},
-	{5, "Resources/Five.bmp"},
-	{6, "Resources/Six.bmp"},
-	{7, "Resources/Seven.bmp"},
-	{8, "Resources/Eight.bmp"},
-	{9, "Resources/Mine.bmp"},
-	{10, "Resources/Flag.bmp"}
-};
 
 TileMap::TileMap(Vector2 Dim, int TileSize, int MinesToSpawn) : Dimensions(Dim), TILE_SIZE(TileSize), NumMines(MinesToSpawn)
 {
-	Tiles = std::vector<std::vector<Tile>>(Dim.Height, std::vector<Tile>(Dim.Width));
+	Tiles = std::vector<std::vector<Tile>>(Dim.Height(), std::vector<Tile>(Dim.Width()));
 	RemainingFlags = MinesToSpawn;
 	RemainingMines = MinesToSpawn;
 	if(LoadResources())
@@ -45,15 +31,15 @@ TileMap::~TileMap()
 
 void TileMap::Draw(SDL_Surface* DrawSurface)
 {
-	int Width = Dimensions.Width;
-	int Height = Dimensions.Height;
+	int Width = Dimensions.Width();
+	int Height = Dimensions.Height();
 	//Draw array of tiles
 	for(int w = 0; w < Width; w++)
 	{
 		for(int h = 0; h < Height; h++)
 		{
 			Vector2 CurrentTile(w,h);
-			SDL_Rect Destination = {w*TILE_SIZE + Position.Width,h*TILE_SIZE + Position.Height,TILE_SIZE,TILE_SIZE};
+			SDL_Rect Destination = {w*TILE_SIZE + Position.x,h*TILE_SIZE + Position.y,TILE_SIZE,TILE_SIZE};
 			//Cover the underlying tile if it hasn't been exposed yet
 			if(!GetTileVisibility(CurrentTile))
 			{
@@ -92,8 +78,8 @@ void TileMap::ProcessInputEvents(SDL_Event& E)
             case SDL_MOUSEBUTTONDOWN:
                 {
                        
-                        int x = (E.button.x - Position.Width) / TILE_SIZE;
-                        int y = (E.button.y - Position.Height) / TILE_SIZE;
+                        int x = (E.button.x - Position.x) / TILE_SIZE;
+                        int y = (E.button.y - Position.y) / TILE_SIZE;
                         Vector2 Tile(x, y);
                         if(E.button.button == SDL_BUTTON_LEFT)
                         {
@@ -180,7 +166,7 @@ void TileMap::DrawBorderTiles(int w, int h, int Width, int Height, SDL_Rect Dest
 
 void TileMap::ShowTile(Vector2 Tile)
 {
-	auto T = &Tiles[Tile.Height][Tile.Width];
+	auto T = &Tiles[Tile.Height()][Tile.Width()];
 	if(T->HasFlag(Flags::VISIBLE) || T->HasFlag(Flags::FLAG))
 	{
 		return;
@@ -191,9 +177,9 @@ void TileMap::ShowTile(Vector2 Tile)
 	if(T->MinesInProximity == 0)
 	{
 		
-		for(int h = Tile.Height - 1; h < Tile.Height + 2; h++)
+		for(int h = Tile.Height() - 1; h < Tile.Height() + 2; h++)
 		{
-			for(int w = Tile.Width - 1; w < Tile.Width + 2; w++)
+			for(int w = Tile.Width() - 1; w < Tile.Width() + 2; w++)
 			{
 				Vector2 NextTile(w,h);
 				if(NextTile == Tile){continue;}
@@ -212,7 +198,7 @@ void TileMap::ShowTile(Vector2 Tile)
 
 void TileMap::MarkTile(Vector2 Tile)
 {
-	auto T = &Tiles[Tile.Height][Tile.Width];
+	auto T = &Tiles[Tile.Height()][Tile.Width()];
 	if(T->HasFlag(Flags::VISIBLE)) return;
 	
 	if(T->HasFlag(Flags::FLAG))
@@ -239,12 +225,27 @@ void TileMap::RevealMines()
 {
 	for(auto Tile : Mines)
 	{
-		Tiles[Tile.Height][Tile.Width].SetFlag(Flags::VISIBLE);
+		Tiles[Tile.Height()][Tile.Width()].SetFlag(Flags::VISIBLE);
 	}
 }
 
 bool TileMap::LoadResources()
 {
+	Resources = std::map<int, const char*>
+	{
+		{0, nullptr},
+		{1, "Resources/One.bmp"},
+		{2, "Resources/Two.bmp"},
+		{3, "Resources/Three.bmp"},
+		{4, "Resources/Four.bmp"},
+		{5, "Resources/Five.bmp"},
+		{6, "Resources/Six.bmp"},
+		{7, "Resources/Seven.bmp"},
+		{8, "Resources/Eight.bmp"},
+		{9, "Resources/Mine.bmp"},
+		{10, "Resources/Flag.bmp"}
+	};
+	
 	TileSurface = SDL_LoadBMP("Resources/Tile.bmp");
 	if(TileSurface == nullptr)
 	{
@@ -260,7 +261,7 @@ bool TileMap::LoadResources()
 	
 	for(int i = 0; i < 11; i++)
 	{
-		const char* Path = TileMap::TileResources.at(i);
+		const char* Path = Resources.at(i);
 		if(Path != nullptr)
 		{
 			TileTypeSurface[i] = SDL_LoadBMP(Path);
@@ -276,6 +277,7 @@ bool TileMap::LoadResources()
 
 void TileMap::ClearResources()
 {
+	
 	SDL_FreeSurface(TileSurface);
 	TileSurface = nullptr;
 	for(auto Surface : TileTypeSurface)
@@ -291,8 +293,8 @@ void TileMap::GenerateTiles()
 	//Generate random mines
 	for(int i = 0; i < NumMines; i++)
 	{
-		int H = rand() % Dimensions.Height;
-		int W = rand() % Dimensions.Width;
+		int H = rand() % Dimensions.Height();
+		int W = rand() % Dimensions.Width();
 
 		if(Tiles[H][W].HasFlag(Flags::MINE))//If it's already a mine, try another one
 		{
@@ -317,15 +319,15 @@ void TileMap::TryIncrementMines(Vector2 Tile)
 {
 	if(IsValidTile(Tile))
 	{
-		Tiles[Tile.Height][Tile.Width].MinesInProximity++;
+		Tiles[Tile.Height()][Tile.Width()].MinesInProximity++;
 	}
 	else
 	{
-		printf("Invalid Tile: %i, %i\n", Tile.Height, Tile.Width);
+		printf("Invalid Tile: %i, %i\n", Tile.Height(), Tile.Width());
 	}
 }
 
 bool TileMap::GetTileVisibility(Vector2 Tile)
 {
-	return Tiles[Tile.Height][Tile.Width].HasFlag(Flags::VISIBLE);
+	return Tiles[Tile.Height()][Tile.Width()].HasFlag(Flags::VISIBLE);
 }
