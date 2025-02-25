@@ -125,9 +125,10 @@ bool LoadMedia()
 
 void Close()
 {
-    for(auto scene : sceneStack)
+    for(auto& scene : sceneStack)
     {
         delete scene;
+        scene = nullptr;
     }
     sceneStack.clear();
     SDL_DestroyWindow(Window);
@@ -164,7 +165,7 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
         {
             
             sceneStack.back()->bShouldDestroy = true; //Mark menu for destruction
-
+            
             int Width = 0, Height = 0, DIFFICULTY = 0;
             switch(NewDifficulty)
             {

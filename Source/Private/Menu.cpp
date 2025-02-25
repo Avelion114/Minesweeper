@@ -6,7 +6,7 @@
 
 Menu::~Menu()
 {
-	for(auto Button : MenuButtons)
+	for(auto& Button : MenuButtons)
 	{
 		delete Button;
 		Button = nullptr;

@@ -280,7 +280,7 @@ void TileMap::ClearResources()
 	
 	SDL_FreeSurface(TileSurface);
 	TileSurface = nullptr;
-	for(auto Surface : TileTypeSurface)
+	for(auto& Surface : TileTypeSurface)
 	{
 		SDL_FreeSurface(Surface);
 		Surface = nullptr;
