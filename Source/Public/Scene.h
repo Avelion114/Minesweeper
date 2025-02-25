@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <map>
+#include <ostream>
 
 struct SDL_Surface;
 union SDL_Event;
@@ -16,7 +17,13 @@ struct Vector2
 	{
 		return (x == other.x) && (y == other.y);
 	}
+
+	
 };
+inline std::ostream& operator<< (std::ostream& os, Vector2 Vec)
+{
+	return os << "(" << Vec.x << ", " << Vec.y << ")";
+}
 
 //Base class for objects that are drawn to the screen
 class Scene
@@ -33,12 +40,15 @@ public:
 	Vector2 Position; //Position within window
 	Vector2 Size;
 
+	bool bShouldDestroy = false;
+
 protected:
 	virtual bool LoadResources() = 0;
 	virtual void ClearResources();
 
 	std::vector<SDL_Surface*> SceneSurfaces;
 	std::map<int, const char*> Resources;
+	
 	
 	
 

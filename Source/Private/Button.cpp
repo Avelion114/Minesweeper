@@ -1,4 +1,5 @@
 #include <Button.h>
+#include <iostream>
 #include <SDL2/SDL_surface.h>
 #include <SDL2/SDL_image.h>
 
@@ -8,7 +9,8 @@ Button::Button()
 	{
 		//Set size to button rectangle
 		SDL_Rect ButtonRect = SceneSurfaces[State]->clip_rect;
-		Size = Vector2(ButtonRect.w, ButtonRect.h); 
+		Size = Vector2(ButtonRect.w, ButtonRect.h);
+		std::cout << Size << std::endl;
 	}
 	SetButtonState(ButtonState::Normal);
 }
@@ -26,6 +28,11 @@ void Button::Draw(SDL_Surface* DrawSurface)
 	DrawRect.x = Position.x;
 	DrawRect.y = Position.y;
 	SDL_BlitSurface(Surface, nullptr, DrawSurface, &DrawRect);
+	if(ButtonTitle)//Draw button title if available
+	{
+		SDL_BlitSurface(ButtonTitle, nullptr, DrawSurface, &DrawRect);
+	}
+	
 	CheckButtonState();
 	
 }
@@ -41,6 +48,7 @@ void Button::ProcessInputEvents(SDL_Event& E)
 				{
 					if(E.button.button == SDL_BUTTON_LEFT) SetButtonState(ButtonState::Pressed);
 				}
+				break;
 			}
 		case ButtonState::Pressed:
 			{
@@ -52,8 +60,17 @@ void Button::ProcessInputEvents(SDL_Event& E)
 						if(OnButtonPressed) OnButtonPressed();
 					}
 				}
+				break;
 			}
-	}	
+	}
+	return;
+}
+
+bool Button::SetButtonTitle(const char* ResourcePath)
+{
+	ButtonTitle = IMG_Load(ResourcePath);
+	if(ButtonTitle == nullptr) return false;
+	return true;
 }
 
 bool Button::LoadResources()
@@ -77,6 +94,9 @@ bool Button::LoadResources()
 void Button::ClearResources()
 {
 	Scene::ClearResources();
+	SDL_FreeSurface(ButtonTitle);
+	ButtonTitle = nullptr;
+	OnButtonPressed = nullptr;
 }
 
 void Button::SetButtonState(ButtonState NewState)
@@ -95,5 +115,9 @@ bool Button::IsMouseOver() const
 	int x;
 	int y;
 	SDL_GetMouseState(&x, &y);
-	return(x - Position.x < Size.x && y - Position.y < Size.y);
+	if(x > Position.x && y > Position.y)
+	{
+		return(x - Position.x < Size.x && y - Position.y < Size.y);
+	}
+	return false;
 }

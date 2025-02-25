@@ -104,8 +104,8 @@ void TileMap::ProcessInputEvents(SDL_Event& E)
                             	}
                             }
                         }
-                    }
                 }
+        }
 }
 
 void TileMap::DrawBorderTiles(int w, int h, int Width, int Height, SDL_Rect Destination, SDL_Surface* DrawSurface)

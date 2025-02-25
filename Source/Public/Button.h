@@ -16,6 +16,7 @@ public:
 	virtual ~Button() override;
 	void Draw(SDL_Surface* DrawSurface) override;
 	void ProcessInputEvents(SDL_Event& E) override;
+	bool SetButtonTitle(const char* ResourcePath);
 	
 	void BindOnButtonPressed(void(*Function)())
 	{
@@ -34,4 +35,5 @@ protected:
 	ButtonState State = Normal;
 	
 	void(*OnButtonPressed)() = nullptr;
+	SDL_Surface* ButtonTitle = nullptr;
 };
