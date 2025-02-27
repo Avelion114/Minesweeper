@@ -5,19 +5,12 @@
 
 Button::Button()
 {
-	if(LoadResources())//Honestly it's probably better to do this elsewhere so buttons don't all allocate resources individually but whatever
-	{
-		//Set size to button rectangle
-		SDL_Rect ButtonRect = SceneSurfaces[State]->clip_rect;
-		Size = Vector2(ButtonRect.w, ButtonRect.h);
-		std::cout << Size << std::endl;
-	}
 	SetButtonState(ButtonState::Normal);
 }
 
 Button::~Button()
 {
-	ClearResources();
+	//ClearResources();
 }
 
 void Button::Draw(SDL_Surface* DrawSurface)
@@ -64,6 +57,17 @@ void Button::ProcessInputEvents(SDL_Event& E)
 			}
 	}
 	return;
+}
+
+void Button::Initialize()
+{
+	if(LoadResources())//Honestly it's probably better to do this elsewhere so buttons don't all allocate resources individually but whatever
+	{
+		//Set size to button rectangle
+		SDL_Rect ButtonRect = SceneSurfaces[State]->clip_rect;
+		Size = Vector2(ButtonRect.w, ButtonRect.h);
+		std::cout << Size << "\n";
+	}
 }
 
 bool Button::SetButtonTitle(const char* ResourcePath)

@@ -38,6 +38,7 @@ public:
 
 	virtual void Draw(SDL_Surface* DrawSurface) override;
 	virtual void ProcessInputEvents(SDL_Event& E) override;
+	virtual void Initialize() override;
 
 	bool GetTileVisibility(Vector2 Tile);
 	void ShowTile(Vector2 Tile);
@@ -63,10 +64,12 @@ public:
 		return RemainingFlags == 0 && RemainingMines == 0;
 	}
 
+	virtual void ClearResources() override;
+	
 protected:
 
 	virtual bool LoadResources() override;
-	virtual void ClearResources() override;
+	
 	
 	void GenerateTiles();
 	void TryIncrementMines(Vector2 Tile);

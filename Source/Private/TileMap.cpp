@@ -1,5 +1,4 @@
 #include "../Public/TileMap.h"
-#include <ctime>
 #include <iostream>
 #include <SDL2/SDL.h>
 #include "../Public/Tile.h"
@@ -13,10 +12,6 @@ TileMap::TileMap(Vector2 Dim, int TileSize, int MinesToSpawn) : Dimensions(Dim),
 	Tiles = std::vector<std::vector<Tile>>(Dim.Height(), std::vector<Tile>(Dim.Width()));
 	RemainingFlags = MinesToSpawn;
 	RemainingMines = MinesToSpawn;
-	if(LoadResources())
-	{
-		GenerateTiles();
-	}
 }
 
 TileMap::~TileMap()
@@ -26,7 +21,6 @@ TileMap::~TileMap()
 		IT.clear();
 	}
 	Tiles.clear();
-	ClearResources();
 }
 
 void TileMap::Draw(SDL_Surface* DrawSurface)
@@ -106,6 +100,14 @@ void TileMap::ProcessInputEvents(SDL_Event& E)
                         }
                 }
         }
+}
+
+void TileMap::Initialize()
+{
+	if(LoadResources())
+	{
+		GenerateTiles();
+	}
 }
 
 void TileMap::DrawBorderTiles(int w, int h, int Width, int Height, SDL_Rect Destination, SDL_Surface* DrawSurface)
@@ -289,7 +291,7 @@ void TileMap::ClearResources()
 
 void TileMap::GenerateTiles()
 {
-	srand(time(NULL));
+	
 	//Generate random mines
 	for(int i = 0; i < NumMines; i++)
 	{

@@ -1,13 +1,15 @@
 #include <iostream>
 #include <SDL2/SDL.h>
-
+#include <ctime>
 #include "Button.h"
+#include "Image.h"
 #include "TileMap.h"
 #include "Menu.h"
 
 constexpr int TILE_SIZE = 23;
 constexpr int SCREEN_WIDTH = 640;
 constexpr int SCREEN_HEIGHT = 480;
+
 
 SDL_Window* Window = nullptr;
 SDL_Surface* WSurface = nullptr;
@@ -25,7 +27,8 @@ enum class GameState
 {
     MAIN_MENU = 0,
     IN_PROGRESS,
-    GAME_OVER
+    GAME_OVER,
+    GAME_QUIT
 };
 
 GameState CurrentState = GameState::MAIN_MENU; //Set the game state
@@ -37,20 +40,20 @@ void Close();
 bool EndGame(bool GameWon);
 void CleanUpMarkedScenes();
 void SetGameState(GameState NewState, Difficulty NewDifficulty = Difficulty::EASY);
+Vector2 GetCenterPosition(Vector2 Size); //Returns the centered position on the screen based on size of Scene
 
 int main(int argc, char* argv[])
 {
+    srand(time(nullptr));
     if(Init())
     {
         if(LoadMedia())
         {
-
-            bool Quit = false;
             SDL_Event E;
 
             SetGameState(GameState::MAIN_MENU);
    
-            while(!Quit)//Main loop
+            while(CurrentState != GameState::GAME_QUIT)//Main loop
             {
                 //Process events
                 while(SDL_PollEvent(&E))
@@ -58,7 +61,10 @@ int main(int argc, char* argv[])
                     switch(E.type)
                     {
                     case SDL_QUIT:
-                        Quit = true; break;
+                        {
+                            SetGameState(GameState::GAME_QUIT);
+                            break; 
+                        }
                     default:
                         {
                             if(sceneStack.back())//Only handle top level scene input
@@ -127,6 +133,7 @@ void Close()
 {
     for(auto& scene : sceneStack)
     {
+        scene->ClearResources();
         delete scene;
         scene = nullptr;
     }
@@ -141,30 +148,42 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
     {
     case GameState::MAIN_MENU:
         {
+
+            if(!sceneStack.empty())
+            {
+                for (auto& scene : sceneStack)
+                {
+                    scene->bShouldDestroy = true;//Mark all scenes for destruction
+                }
+            }
+            
             Menu* MainMenu = new Menu;
             //194 x 53 is the Button image size. Could make a function to make this more modular later
-            int CENTER_X = (SCREEN_WIDTH / 2) - (194 / 2); 
-            int CENTER_Y = (SCREEN_HEIGHT / 2) - (53 / 2);
+           Vector2 CenterPos = GetCenterPosition({194,53});
             
-            MainMenu->AddButton(Vector2(CENTER_X,CENTER_Y - 60), "Resources/Title/Title_Easy.png", []()
+            MainMenu->AddButton(Vector2(CenterPos.x,CenterPos.y - 60), "Resources/Title/Title_Easy.png", []()
                 {
                     SetGameState(GameState::IN_PROGRESS, Difficulty::EASY);                
             });
-            MainMenu->AddButton(Vector2(CENTER_X,CENTER_Y), "Resources/Title/Title_Medium.png", []()
+            MainMenu->AddButton(Vector2(CenterPos.x,CenterPos.y), "Resources/Title/Title_Medium.png", []()
                  {
                      SetGameState(GameState::IN_PROGRESS, Difficulty::MEDIUM);
                  });
-            MainMenu->AddButton(Vector2(CENTER_X,CENTER_Y + 60), "Resources/Title/Title_Hard.png", []()
+            MainMenu->AddButton(Vector2(CenterPos.x,CenterPos.y + 60), "Resources/Title/Title_Hard.png", []()
                   {
                       SetGameState(GameState::IN_PROGRESS, Difficulty::HARD);                
               });
+            MainMenu->AddButton(Vector2(CenterPos.x, CenterPos.y + 150), "Resources/Title/Title_Quit.png", []()
+              {
+                  SetGameState(GameState::GAME_QUIT);                
+            });
             sceneStack.push_back(MainMenu);
             break;
         }
     case GameState::IN_PROGRESS:
         {
             
-            sceneStack.back()->bShouldDestroy = true; //Mark menu for destruction
+            sceneStack.back()->bShouldDestroy = true; //Mark main menu for destruction
             
             int Width = 0, Height = 0, DIFFICULTY = 0;
             switch(NewDifficulty)
@@ -179,15 +198,27 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
             int PosY = (SCREEN_HEIGHT - (Height * TILE_SIZE)) / 2;
             NewMap->Position = Vector2(PosX, PosY);
             NewMap->SetOnGameEnded(&EndGame);
+            NewMap->Initialize();
             sceneStack.push_back(NewMap);
 
             break;
         }
     case GameState::GAME_OVER:
         {
-            sceneStack.push_back(new Menu);
+            Menu* EndMenu = new Menu;
+            Vector2 CenterPos = GetCenterPosition({194,53});
+            EndMenu->AddButton(Vector2(CenterPos.x, CenterPos.y), "Resources/Title/Title_Menu.png", []()
+               {
+                   SetGameState(GameState::MAIN_MENU);
+           });
+            EndMenu->AddButton(Vector2(CenterPos.x, CenterPos.y + 60), "Resources/Title/Title_Quit.png", []()
+               {
+                   SetGameState(GameState::GAME_QUIT);                
+           });
+            sceneStack.push_back(EndMenu);
             break;
         }
+    case GameState::GAME_QUIT: break;
     }
     CurrentState = NewState;
 }
@@ -197,28 +228,39 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
 
 bool EndGame(bool GameWon)
 {
+    const char* ImagePath = GameWon ? "Resources/Title/Title_Win.png" : "Resources/Title/Title_Lose.png";
+    
+    Image* GameHeading = new Image(ImagePath);
+    GameHeading->Initialize();
+    Vector2 Dim = GameHeading->GetSceneDimensions();
+    Vector2 Pos = GetCenterPosition(Dim);
+    Pos.y -= 200;
+    GameHeading->Position = Pos;
+
+    sceneStack.push_back(GameHeading);    
+
     SetGameState(GameState::GAME_OVER);
-    if(GameWon)
-    {
-        std::cout << "Congrats!\nYou Won!" << std::endl;
-    }
-    else
-    {
-        std::cout << "You Lose :(" << std::endl;
-    }
     return false;
 }
 
 void CleanUpMarkedScenes()
 {
-    for(int i = 0; i < sceneStack.size(); i++)
+    for(int i = sceneStack.size() - 1; i > -1; i--)
     {
         Scene* scene = sceneStack[i];
         if(scene->bShouldDestroy)
         {
+            scene->ClearResources();
             delete scene;
             sceneStack.erase(sceneStack.begin() + i);
             std::cout << "Scene Destroyed at index : " << i << std::endl;
         }
     }
+}
+
+Vector2 GetCenterPosition(Vector2 Size)
+{
+    int x = (SCREEN_WIDTH - Size.x) / 2; 
+    int y = (SCREEN_HEIGHT - Size.y) / 2;
+    return {x ,y};
 }

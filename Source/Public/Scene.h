@@ -5,13 +5,16 @@
 
 struct SDL_Surface;
 union SDL_Event;
-
 struct Vector2
 {
 	Vector2(int x = 0, int y = 0) : x(x), y(y){}
 	int x, y;
+
+	//Helper functions for readability in context to height and width
 	int Width() const {return x;}
 	int Height() const {return y;}
+
+	static Vector2 Zero() {return {0,0};}
 
 	bool operator==(const Vector2& other) const
 	{
@@ -40,11 +43,16 @@ public:
 	Vector2 Position; //Position within window
 	Vector2 Size;
 
+	virtual Vector2 GetSceneDimensions(){return Vector2::Zero();}
+
 	bool bShouldDestroy = false;
+
+	virtual void Initialize() = 0; //Used for post constructor functions such as LoadResources.
+	virtual void ClearResources();
 
 protected:
 	virtual bool LoadResources() = 0;
-	virtual void ClearResources();
+	
 
 	std::vector<SDL_Surface*> SceneSurfaces;
 	std::map<int, const char*> Resources;

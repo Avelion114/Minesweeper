@@ -8,6 +8,7 @@ Menu::~Menu()
 {
 	for(auto& Button : MenuButtons)
 	{
+		Button->ClearResources();
 		delete Button;
 		Button = nullptr;
 	}
@@ -41,6 +42,7 @@ bool Menu::AddButton(Vector2 ButtonPosition, const char* TitlePath, void(*Callba
 	NewButton->Position = ButtonPosition;
 	if(Callback) NewButton->BindOnButtonPressed(Callback);
 	if(TitlePath) NewButton->SetButtonTitle(TitlePath);
+	NewButton->Initialize();
 	MenuButtons.push_back(NewButton);
 	return true;
 }
