@@ -21,6 +21,16 @@ struct Vector2
 		return (x == other.x) && (y == other.y);
 	}
 
+	Vector2 operator-(const Vector2& other) const
+	{
+		return {x - other.x, y - other.y};
+	}
+
+	Vector2 operator+(const Vector2& other) const
+	{
+		return {other.x + x, other.y + y};
+	}
+
 	
 };
 inline std::ostream& operator<< (std::ostream& os, Vector2 Vec)
@@ -38,7 +48,7 @@ public:
 
 	virtual void Draw(SDL_Surface* DrawSurface, int SCREEN_WIDTH, int SCREEN_HEIGHT) {}
 	virtual void Draw(SDL_Surface* DrawSurface) = 0;
-	virtual void ProcessInputEvents(SDL_Event& E) = 0;
+	virtual void ProcessInputEvents(SDL_Event& E) {}
 
 	Vector2 Position; //Position within window
 	Vector2 Size;
@@ -49,6 +59,8 @@ public:
 
 	virtual void Initialize() = 0; //Used for post constructor functions such as LoadResources.
 	virtual void ClearResources();
+
+	bool bReceiveInput = false;
 
 protected:
 	virtual bool LoadResources() = 0;

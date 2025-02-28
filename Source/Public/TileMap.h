@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <functional>
 #include <vector>
 #include <map>
 #include "Scene.h"
@@ -65,6 +66,8 @@ public:
 	}
 
 	virtual void ClearResources() override;
+
+	std::function<void(int)> OnFlag;
 	
 protected:
 

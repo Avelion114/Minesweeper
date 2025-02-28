@@ -5,16 +5,20 @@
 #include "Image.h"
 #include "TileMap.h"
 #include "Menu.h"
+#include "NumberDisplay.h"
 
 constexpr int TILE_SIZE = 23;
 constexpr int SCREEN_WIDTH = 640;
 constexpr int SCREEN_HEIGHT = 480;
+
+#define ALL_SCENES for(auto& scene : sceneStack)
 
 
 SDL_Window* Window = nullptr;
 SDL_Surface* WSurface = nullptr;
 
 std::vector<Scene*> sceneStack; //All scenes to be drawn
+
 
 enum class Difficulty : uint8_t
 {
@@ -32,6 +36,7 @@ enum class GameState
 };
 
 GameState CurrentState = GameState::MAIN_MENU; //Set the game state
+std::pair<bool, GameState> GameStateDeferred = {false, GameState::MAIN_MENU};
 
 bool Init();
 bool LoadMedia();
@@ -40,6 +45,10 @@ void Close();
 bool EndGame(bool GameWon);
 void CleanUpMarkedScenes();
 void SetGameState(GameState NewState, Difficulty NewDifficulty = Difficulty::EASY);
+void SetGameStateDeferred(GameState NewState)
+{
+    GameStateDeferred = {true, NewState};
+}
 Vector2 GetCenterPosition(Vector2 Size); //Returns the centered position on the screen based on size of Scene
 
 int main(int argc, char* argv[])
@@ -62,26 +71,33 @@ int main(int argc, char* argv[])
                     {
                     case SDL_QUIT:
                         {
-                            SetGameState(GameState::GAME_QUIT);
+                            SetGameStateDeferred(GameState::GAME_QUIT);
                             break; 
                         }
                     default:
                         {
-                            if(sceneStack.back())//Only handle top level scene input
+                            ALL_SCENES //Process input for scenes
                             {
-                                sceneStack.back()->ProcessInputEvents(E);
+                                if(scene->bReceiveInput)
+                                {
+                                    scene->ProcessInputEvents(E);
+                                }
                             }
-                            break;
                         }
                     }
                 }
                 SDL_FillRect(WSurface, nullptr, SDL_MapRGB(WSurface->format, 0xB0, 0xB0, 0xB0)); //Draw background
-                for(auto scene : sceneStack) //Draw all scenes
+                ALL_SCENES //Draw all scenes
                 {
                     scene->Draw(WSurface); 
                 }
                 SDL_UpdateWindowSurface(Window);
                 CleanUpMarkedScenes(); //Destroy scenes marked for destruction this frame
+                
+                if(GameStateDeferred.first)//Change game state at end of game loop
+                {
+                    SetGameState(GameStateDeferred.second);
+                }
             }
         }
         else
@@ -131,7 +147,7 @@ bool LoadMedia()
 
 void Close()
 {
-    for(auto& scene : sceneStack)
+    ALL_SCENES
     {
         scene->ClearResources();
         delete scene;
@@ -144,6 +160,7 @@ void Close()
 
 void SetGameState(GameState NewState, Difficulty NewDifficulty)
 {
+    GameStateDeferred.first = false;
     switch(NewState)
     {
     case GameState::MAIN_MENU:
@@ -151,7 +168,7 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
 
             if(!sceneStack.empty())
             {
-                for (auto& scene : sceneStack)
+                ALL_SCENES
                 {
                     scene->bShouldDestroy = true;//Mark all scenes for destruction
                 }
@@ -184,6 +201,7 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
         {
             
             sceneStack.back()->bShouldDestroy = true; //Mark main menu for destruction
+            sceneStack.back()->bReceiveInput = false;
             
             int Width = 0, Height = 0, DIFFICULTY = 0;
             switch(NewDifficulty)
@@ -199,12 +217,25 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
             NewMap->Position = Vector2(PosX, PosY);
             NewMap->SetOnGameEnded(&EndGame);
             NewMap->Initialize();
+            
+
+            NumberDisplay* Display = new NumberDisplay(DIFFICULTY, 3);
+            Display->Initialize();
+            Vector2 Pos =  NewMap->Position - Vector2(TILE_SIZE, TILE_SIZE);
+            Pos.y -= Display->GetFontSize().Height();
+            Display->Position = Pos;
+
+            using std::placeholders::_1;
+            NewMap->OnFlag = std::bind(&NumberDisplay::UpdateNumber, Display, _1);
+
             sceneStack.push_back(NewMap);
+            sceneStack.push_back(Display);
 
             break;
         }
     case GameState::GAME_OVER:
         {
+            
             Menu* EndMenu = new Menu;
             Vector2 CenterPos = GetCenterPosition({194,53});
             EndMenu->AddButton(Vector2(CenterPos.x, CenterPos.y), "Resources/Title/Title_Menu.png", []()
@@ -228,8 +259,9 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
 
 bool EndGame(bool GameWon)
 {
-    const char* ImagePath = GameWon ? "Resources/Title/Title_Win.png" : "Resources/Title/Title_Lose.png";
+   ALL_SCENES{scene->bReceiveInput = false;} //Stop handling input for everything 
     
+    const char* ImagePath = GameWon ? "Resources/Title/Title_Win.png" : "Resources/Title/Title_Lose.png";
     Image* GameHeading = new Image(ImagePath);
     GameHeading->Initialize();
     Vector2 Dim = GameHeading->GetSceneDimensions();
@@ -239,7 +271,7 @@ bool EndGame(bool GameWon)
 
     sceneStack.push_back(GameHeading);    
 
-    SetGameState(GameState::GAME_OVER);
+    SetGameStateDeferred(GameState::GAME_OVER);
     return false;
 }
 

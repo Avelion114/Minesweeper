@@ -12,6 +12,7 @@ TileMap::TileMap(Vector2 Dim, int TileSize, int MinesToSpawn) : Dimensions(Dim),
 	Tiles = std::vector<std::vector<Tile>>(Dim.Height(), std::vector<Tile>(Dim.Width()));
 	RemainingFlags = MinesToSpawn;
 	RemainingMines = MinesToSpawn;
+	bReceiveInput = true;
 }
 
 TileMap::~TileMap()
@@ -200,6 +201,7 @@ void TileMap::ShowTile(Vector2 Tile)
 
 void TileMap::MarkTile(Vector2 Tile)
 {
+	if(!IsValidTile(Tile)) return;
 	auto T = &Tiles[Tile.Height()][Tile.Width()];
 	if(T->HasFlag(Flags::VISIBLE)) return;
 	
@@ -221,6 +223,7 @@ void TileMap::MarkTile(Vector2 Tile)
 			RemainingMines--;
 		}
 	}
+	if(OnFlag)OnFlag(RemainingFlags);
 }
 
 void TileMap::RevealMines()

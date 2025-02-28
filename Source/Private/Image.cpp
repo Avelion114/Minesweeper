@@ -24,10 +24,6 @@ void Image::Draw(SDL_Surface* DrawSurface)
 	SDL_BlitSurface(Surface, nullptr, DrawSurface, &DrawRect);
 }
 
-void Image::ProcessInputEvents(SDL_Event& E)
-{
-	return;
-}
 
 bool Image::LoadResources()
 {

@@ -4,6 +4,11 @@
 
 #include "Button.h"
 
+Menu::Menu()
+{
+	bReceiveInput = true;
+}
+
 Menu::~Menu()
 {
 	for(auto& Button : MenuButtons)

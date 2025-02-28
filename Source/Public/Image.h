@@ -13,10 +13,7 @@ public:
 	virtual ~Image() override;
 	virtual void Initialize() override;
 	void Draw(SDL_Surface* DrawSurface) override;
-	void ProcessInputEvents(SDL_Event& E) override;
 	void ClearResources() override;
-
-	
 
 	Vector2 GetSceneDimensions() override
 	{

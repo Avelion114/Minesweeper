@@ -7,7 +7,7 @@ class Menu : public Scene
 {
 public:
 
-	Menu(){}
+	Menu();
 	virtual ~Menu() override;
 	void Draw(SDL_Surface* DrawSurface) override;
 	void ProcessInputEvents(SDL_Event& E) override;

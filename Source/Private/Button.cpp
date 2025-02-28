@@ -6,6 +6,7 @@
 Button::Button()
 {
 	SetButtonState(ButtonState::Normal);
+	bReceiveInput = true; //Buttons should receive input by default
 }
 
 Button::~Button()
