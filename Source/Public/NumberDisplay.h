@@ -1,18 +1,20 @@
 #pragma once
 #include "Scene.h"
 
+//Can display a numerical value on the screen
 class NumberDisplay : public Scene
 {
 public:
 
-	NumberDisplay(int Number, unsigned int Max = 3);
+	NumberDisplay();
+	NumberDisplay(unsigned int Number, unsigned int Max = 3);
 	virtual ~NumberDisplay() override;
 
-	void Draw(SDL_Surface* DrawSurface) override;
-	void Initialize() override;
-	void ClearResources() override;
+	virtual void Draw(SDL_Surface* DrawSurface) override;
+	virtual void Initialize() override;
+	virtual void ClearResources() override;
 
-	void UpdateNumber(int NewNumber);
+	virtual void UpdateNumber(unsigned int NewNumber);
 	
 	void SetFontSize(Vector2 NewSize)
 	{
@@ -21,15 +23,16 @@ public:
 	Vector2 GetFontSize() const {return FontSize;}
 
 protected:
-	bool LoadResources() override;
+	virtual bool LoadResources() override;
 
-	int Number = 0;
+	unsigned int Number = 0;
+
+	//Max number of digits to contain in the number. Truncates the rest 
 	unsigned int MaxDigits;
 
-	std::vector<int> Digits;
-	Vector2 FontSize = {16,32}; //Size of default font sheet
-
-private:
+	std::vector<unsigned int> Digits;
+	Vector2 FontSize = {16,32}; //Size of one number in the default font sheet
 
 	bool bProcessingUpdate = false;
+
 };

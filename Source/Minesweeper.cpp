@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <ctime>
 #include "Button.h"
+#include "GameTimer.h"
 #include "Image.h"
 #include "TileMap.h"
 #include "Menu.h"
@@ -18,6 +19,7 @@ SDL_Window* Window = nullptr;
 SDL_Surface* WSurface = nullptr;
 
 std::vector<Scene*> sceneStack; //All scenes to be drawn
+GameTimer* Timer = nullptr;
 
 
 enum class Difficulty : uint8_t
@@ -228,14 +230,24 @@ void SetGameState(GameState NewState, Difficulty NewDifficulty)
             using std::placeholders::_1;
             NewMap->OnFlag = std::bind(&NumberDisplay::UpdateNumber, Display, _1);
 
+            Timer = new GameTimer();
+            Timer->Initialize();
+            Vector2 Pos2 = NewMap->Position - Vector2(TILE_SIZE, TILE_SIZE);
+            Pos2.y -= Timer->GetFontSize().Height();
+            Pos2.x += (Width + 2) * TILE_SIZE - Timer->GetFontSize().Width() * 5;
+            Timer->Position = Pos2;
+
             sceneStack.push_back(NewMap);
             sceneStack.push_back(Display);
+            sceneStack.push_back(Timer);
+
+            Timer->StartTimer();
 
             break;
         }
     case GameState::GAME_OVER:
         {
-            
+            Timer->StopTimer();
             Menu* EndMenu = new Menu;
             Vector2 CenterPos = GetCenterPosition({194,53});
             EndMenu->AddButton(Vector2(CenterPos.x, CenterPos.y), "Resources/Title/Title_Menu.png", []()

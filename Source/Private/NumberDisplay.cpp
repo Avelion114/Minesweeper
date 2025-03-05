@@ -3,11 +3,18 @@
 #include <iostream>
 #include <SDL2/SDL_image.h>
 
-NumberDisplay::NumberDisplay(int InitNumber, unsigned int Max)
+//Default Constructor
+NumberDisplay::NumberDisplay()
+{
+	MaxDigits = 3;
+	Resources[0] = "Resources/digital_font_sheet.png";
+}
+
+NumberDisplay::NumberDisplay(unsigned int InitNumber, unsigned int Max)
 {
 	MaxDigits = Max;
-	UpdateNumber(InitNumber);
-	Resources[0] = "Resources/digital_font_sheet.png"; //default
+	Number = InitNumber;
+	Resources[0] = "Resources/digital_font_sheet.png";
 }
 
 NumberDisplay::~NumberDisplay()
@@ -17,12 +24,11 @@ NumberDisplay::~NumberDisplay()
 
 void NumberDisplay::Draw(SDL_Surface* DrawSurface)
 {
-	int OFFSET = FontSize.Width() * 7; // Skip first 8 digits in font sheet
+	int OFFSET = (FontSize.Width() * 7) + 1; // Skip first 8 digits in font sheet. Add one pixel
 	
 	for(int i = 0; i < Digits.size(); i++)
 	{
-		if(bProcessingUpdate){return;}//We may update the number while drawing
-		
+		if(bProcessingUpdate){return;}//Exit loop if we've updated the number in the middle of drawing
 		int Value = Digits[i];
 		int x;
 		int y;
@@ -37,12 +43,9 @@ void NumberDisplay::Draw(SDL_Surface* DrawSurface)
 			y = FontSize.Height() * 2;
 			x = Value == 0 ? OFFSET + FontSize.Width() * 2 : OFFSET + FontSize.Width(); //Handle 0 and 9 respectively
 		}
-		x += 1;
 		SDL_Rect SrcRect{x, y, FontSize.Width(), FontSize.Height()};
 		SDL_Rect DestRect{Position.x + FontSize.Width() * i, Position.y, FontSize.Width(), FontSize.Height()};
-		SDL_Rect BgRect{FontSize.Width() * 9, 0, FontSize.Width(), FontSize.Height() };
-
-		//SDL_BlitSurface(SceneSurfaces[0],&BgRect,DrawSurface, &DestRect); //Draw background first
+		
 		SDL_BlitSurface(SceneSurfaces[0],&SrcRect,DrawSurface, &DestRect);
 	}
 }
@@ -50,6 +53,7 @@ void NumberDisplay::Draw(SDL_Surface* DrawSurface)
 void NumberDisplay::Initialize()
 {
 	LoadResources();
+	UpdateNumber(Number);
 }
 
 void NumberDisplay::ClearResources()
@@ -57,7 +61,7 @@ void NumberDisplay::ClearResources()
 	Scene::ClearResources();
 }
 
-void NumberDisplay::UpdateNumber(int NewNumber)
+void NumberDisplay::UpdateNumber(unsigned int NewNumber)
 {
 	bProcessingUpdate = true;
 

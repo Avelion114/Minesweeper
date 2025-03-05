@@ -5,6 +5,7 @@
 
 struct SDL_Surface;
 union SDL_Event;
+
 struct Vector2
 {
 	Vector2(int x = 0, int y = 0) : x(x), y(y){}
